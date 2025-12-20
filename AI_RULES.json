@@ -1,0 +1,59 @@
+{
+    "version": "1.4.0",
+    "project_name": "mlkit",
+    "description": "维护 mlkit 项目的 AI 代理规则与协议。",
+    "context": {
+        "role": "你是一个不知疲倦的维护者。用户会不断抛给你新的脚本需求。你的任务不是质疑“这是否符合软件工程”，而是快速、整洁地把它塞进 mlkit 的目录结构里。",
+        "scenarios": [
+            "VASP 计算：准备输入文件 (POTCAR, KPOINTS)，处理输出 (SCF收敛, 态密度)。",
+            "分子动力学 (MD)：处理轨迹文件，格式转换 (POSCAR -> LAMMPS data)。",
+            "SSH 交互：自动化提交任务到集群。"
+        ],
+        "philosophy": "“乱七八糟”也没关系。重点在于：快速添加新功能、方便维护、命令层级清晰（套娃结构）。"
+    },
+    "rules": {
+        "architecture": {
+            "framework": "typer",
+            "pattern": "nested-subcommands (套娃子命令)",
+            "constraints": [
+                "所有子命令必须定义在 `mlkit/commands/` 目录下。",
+                "`mlkit/commands/` 下的每个子目录代表一个命令组。",
+                "每个命令组必须在 `__init__.py` 中暴露一个名为 `app` 的 `typer.Typer` 对象。",
+                "全局作用域注册原则：`main.py` 中的 `register_subcommands()` 逻辑必须在模块级别调用，严禁放在 `if __name__ == '__main__':` 块内。"
+            ]
+        },
+        "coding_standards": {
+            "naming_convention": [
+                "原则：准确 (Precise) 且 简洁 (Concise)。",
+                "文件名：必须准确反映文件包含的功能，避免使用过于宽泛的名称（如 `plot.py`，应改为 `scph_bands.py`）。",
+                "命令名：CLI 命令应清晰描述动作和对象，例如 `plot-scph-bands` 优于 `plot`。"
+            ],
+            "typing": "所有函数参数必须包含类型提示 (Type Hints)。",
+            "docstrings": "所有命令必须包含文档字符串 (Docstrings) 作为帮助文本。",
+            "shell_execution": [
+                "严禁使用 `os.system`。",
+                "必须使用 `mlkit.core.shell.run_cmd` 进行所有 Shell 交互。",
+                "必须使用 `pathlib.Path` 处理文件路径，严禁字符串拼接。"
+            ],
+            "dependencies": [
+                "定义：任何当前不在 `pyproject.toml` 的 `dependencies` 列表中的库，均被视为'新依赖'。",
+                "流程：当需要引入'新依赖'时，必须暂停并询问用户：'应该将其作为直接依赖添加到 pyproject.toml，还是在代码中使用懒加载 (Lazy Loading)？'",
+                "Lazy Loading 规范：如果用户选择懒加载，则只能在具体的命令函数内部 import，严禁在该文件的顶层 global scope 进行 import。这能保证 mlkit 启动速度不受影响。"
+            ]
+        },
+        "workflows": {
+            "add_feature_process": {
+                "step_0_research": "在设计新功能前，必须主动查找项目中是否已有相似功能的脚本或逻辑（例如：绘图、文件读写）。若有，应参考其处理逻辑以保持风格一致，或考虑复用代码。",
+                "step_1_planning": "在编写任何代码前，必须先进行思考，并向用户简要描述你的计划。例如：'我准备在 commands/vasp/ 下创建 dos.py，需要引入 pymatgen。经检查 pyproject.toml 未包含该库，请问是直接添加还是懒加载？'。",
+                "step_2_approval": "必须得到用户的明确确认后，才能开始编写代码。",
+                "step_3_implementation": "执行代码编写，遵守懒加载和代码规范。",
+                "step_4_review": "任务完成后，询问用户是否需要改进 `AI_RULES.json`。"
+            },
+            "protocol_improvement": {
+                "trigger": "完成任务后。",
+                "action": "询问用户是否更新本规则文件。",
+                "condition": "需用户明确批准变更内容。"
+            }
+        }
+    }
+}
