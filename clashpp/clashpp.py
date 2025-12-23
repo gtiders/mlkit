@@ -127,7 +127,9 @@ def ensure_yaml():
             # Find the lib/yaml dir
             extracted_root = None
             for item in LIBS_DIR.iterdir():
-                if item.is_dir() and item.name.startswith("PyYAML"):
+                if item.is_dir() and (
+                    item.name.startswith("PyYAML") or item.name.startswith("pyyaml")
+                ):
                     extracted_root = item
                     break
 
@@ -172,10 +174,26 @@ def get_latest_version_tag():
         error_exit(f"Failed to fetch latest version info: {e}")
 
 
-def install_or_update(force=False):
+def install_or_update(force=False, local_file=None):
     if KERNEL_BIN.exists() and not force:
         log("Kernel already exists. Use --update to force update.")
         return
+
+    if local_file:
+        local_path = Path(local_file)
+        if not local_path.exists():
+            error_exit(f"Local file not found: {local_file}")
+
+        log(f"Installing from local file: {local_path}...")
+        try:
+            with gzip.open(local_path, "rb") as f_in:
+                with open(KERNEL_BIN, "wb") as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+            KERNEL_BIN.chmod(0o755)
+            log("Installation completed from local file.")
+            return
+        except Exception as e:
+            error_exit(f"Installation from local file failed: {e}")
 
     log("Checking for latest version...")
     tag = get_latest_version_tag()
@@ -268,6 +286,19 @@ def load_config(url=None):
             host_part = ext_ctrl.split(":")[0] if ":" in ext_ctrl else "127.0.0.1"
             config["external-controller"] = f"{host_part}:{new_port}"
 
+        # Inject MMDB mirror for China users
+        if "geox-url" not in config:
+            config["geox-url"] = {}
+        config["geox-url"]["mmdb"] = (
+            "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.metadb"
+        )
+        config["geox-url"]["geoip"] = (
+            "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+        )
+        config["geox-url"]["geosite"] = (
+            "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+        )
+
         with open(CONFIG_RUNTIME, "w", encoding="utf-8") as f:
             yaml.dump(config, f)
 
@@ -355,6 +386,8 @@ def status():
                 with open(CONFIG_RUNTIME) as f:
                     c = yaml.safe_load(f)
                     print(f"Mixed Port: {c.get('mixed-port', 'N/A')}")
+                    print(f"HTTP Port: {c.get('port', 'N/A')}")
+                    print(f"SOCKS Port: {c.get('socks-port', 'N/A')}")
                     print(f"Controller: {c.get('external-controller', 'N/A')}")
             return
         except ProcessLookupError:
@@ -374,7 +407,8 @@ def main():
     subparsers.add_parser("stop", help="Stop the proxy")
     subparsers.add_parser("restart", help="Restart the proxy")
     subparsers.add_parser("status", help="Check status")
-    subparsers.add_parser("install", help="Install mihomo kernel")
+    install_parser = subparsers.add_parser("install", help="Install mihomo kernel")
+    install_parser.add_argument("file", nargs="?", help="Local package file to install")
     subparsers.add_parser("env", help="Output export commands for shell")
 
     update_parser = subparsers.add_parser(
@@ -399,7 +433,7 @@ def main():
     elif args.command == "status":
         status()
     elif args.command == "install":
-        install_or_update(force=True)
+        install_or_update(force=True, local_file=args.file)
     elif args.command == "env":
         if PID_FILE.exists() and CONFIG_RUNTIME.exists():
             try:

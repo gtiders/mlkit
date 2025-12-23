@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Get directory of this script
-if [[ -n "${BASH_SOURCE[0]}" ]]; then
+if [[ -n "${BASH_SOURCE:-}" ]]; then
     SCRIPT_PATH="${BASH_SOURCE[0]}"
 elif [[ -n "${ZSH_VERSION}" ]]; then
     SCRIPT_PATH="${(%):-%x}"

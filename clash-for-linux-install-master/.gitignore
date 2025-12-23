@@ -1,5 +1,0 @@
-.idea
-.vscode
-config.yaml
-resources/bin/**
-!.gitkeep
