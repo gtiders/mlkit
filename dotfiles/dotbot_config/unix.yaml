@@ -11,26 +11,19 @@
 - clean: ["~"]
 
 - link:
-    ~/.config/starship.toml: 
+    ~/.config/starship.toml:
       force: true
       path: starship/starship.toml
-    ~/.config/helix: 
+    ~/.config/helix:
       force: true
       path: helix
-    ~/.config/wezterm: 
+    ~/.config/wezterm:
       force: true
       path: wezterm
-    ~/.config/yazi: 
+    ~/.config/yazi:
       force: true
       path: yazi
-    ~/.config/yk:
-      force: true
-      path: yk
-    ~/.config/zsh/config: 
+    ~/.config/bash/:
       create: true
       force: true
-      path: shell/zsh/config
-    ~/.config/zsh/plugins: 
-      create: true
-      force: true
-      path: shell/zsh/plugins
+      path: shell/bash/
